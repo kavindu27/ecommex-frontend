@@ -1,3 +1,8 @@
+#MY Details
+W.kavindu kaushalya Madhusanka
+070 4064251
+
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
