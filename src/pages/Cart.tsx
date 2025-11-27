@@ -17,6 +17,12 @@ export default function Cart() {
     setItems(stored);
   }, []);
 
+  const removeItem = (uid: string) => {
+    const updated = items.filter((item) => item.uid !== uid);
+    setItems(updated);
+    localStorage.setItem("cart", JSON.stringify(updated));
+  };
+
   if (!items.length) return <div className="center">Your cart is empty.</div>;
 
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
@@ -25,13 +31,12 @@ export default function Cart() {
     setLoading(true);
     setError(null);
 
-    // Prepare payload for the API
     const orderData = {
-      customer_id: 5, // replace with actual logged-in user ID
+      customer_id: 5,
       payment_status: 1,
       payment_method: "card",
-      delivery_fee: 300, // example
-      delivery_address: "45 Temple Road, Colombo", // example
+      delivery_fee: 300,
+      delivery_address: "45 Temple Road, Colombo",
       note: "Please deliver ASAP",
       status: 1,
       total_price: total,
@@ -51,7 +56,7 @@ export default function Cart() {
       // Clear cart
       localStorage.removeItem("cart");
       setItems([]);
-      nav("/"); // redirect to home
+      nav("/");
     } catch (err: any) {
       setError(err.message || "Failed to place order");
     } finally {
@@ -70,6 +75,13 @@ export default function Cart() {
               <h3>{item.title}</h3>
               <p>Qty: {item.qty}</p>
               <p>Rs. {item.price}</p>
+              <button
+                className="btn-primary"
+                style={{ background: "#ff4d4f", marginTop: "6px" }}
+                onClick={() => removeItem(item.uid)}
+              >
+                Remove
+              </button>
             </div>
           </div>
         ))}
