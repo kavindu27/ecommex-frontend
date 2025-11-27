@@ -1,105 +1,137 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+// src/pages/Details.tsx
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import type { Product, Variant, CartItem } from "../types";
-import useCart from "../hooks/useCart";
+import type { Products, Variant } from "../types";
 
-const Details: React.FC = () => {
+const API_BASE = import.meta.env.VITE_API_BASE || "https://evaluate.ecommexserver.site";
+
+export default function Details() {
   const { id } = useParams<{ id: string }>();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const { add } = useCart();
-  const [mainImage, setMainImage] = useState("/placeholder.png");
+  const nav = useNavigate();
+
+  const [product, setProduct] = useState<Products | null>(null);
+  const [selected, setSelected] = useState<Variant | null>(null);
+  const [qty, setQty] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const res = await axios.get(
-          `https://evaluate.ecommexserver.site/api/v2/products/all/variant?store_id=4`
-        );
-        const found = res.data.find((p: Product) => p.id === Number(id));
-        if (found) {
-          setProduct(found);
-          if (found.variants?.length) setSelectedVariant(found.variants[0]);
-          const firstImage = found.image || found.images?.[0] || null;
-          setMainImage(firstImage ? `https://evaluate.ecommexserver.site${firstImage}` : "/placeholder.png");
+    if (!id) return;
+    let mounted = true;
+
+    axios
+      .get(`${API_BASE}/api/v2/products/all/variant?store_id=4`)
+      .then((res) => {
+        if (!mounted) return;
+        const list: Products[] = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+        const found = list.find((p) => String(p.id) === id || String(p.product_id) === id) || null;
+        setProduct(found);
+
+        // Auto-select first variant if only one exists
+        if (found?.variants?.length === 1) {
+          setSelected(found.variants[0]);
         }
-      } catch (err) {
-        console.error("Error fetching product:", err);
-      }
+      })
+      .catch((err) => setError(err.message || "Failed to load product"))
+      .finally(() => mounted && setLoading(false));
+
+    return () => {
+      mounted = false;
     };
-    fetchProduct();
   }, [id]);
 
-  if (!product) return <div>Loading...</div>;
+  if (loading) return <div className="center">Loading product…</div>;
+  if (error) return <div className="center error">{error}</div>;
+  if (!product) return <div className="center error">Product not found</div>;
 
-  const handleAddToCart = () => {
-    if (!selectedVariant) return;
+  // Safe main image
+  const mainImage: string = (() => {
+    if (product.image) return product.image;
+    const img = product.images?.[0];
+    if (!img) return "/placeholder.png";
+    return typeof img === "string" ? img : "url" in img && img.url ? `${API_BASE}${img.url}` : "/placeholder.png";
+  })();
 
-    const cartItem: CartItem = {
-      uid: `${product.id}_${selectedVariant.id}`,
-      productId: product.id,
-      variantId: selectedVariant.id,
-      title: product.title || product.name || `Product ${product.id}`,
-      price: selectedVariant.price ?? 0,
-      qty: quantity,
-      image: mainImage,
-    };
+  const handleAdd = () => {
+  if (product.variants && product.variants.length > 0 && !selected) {
+    alert("Select a variant");
+    return;
+  }
 
-    add(cartItem);
-    alert("Added to cart!");
+  const uid = selected ? `${product.id}_${selected.id}` : `${product.id}`;
+  const cartItem = {
+    uid,
+    productId: product.id,
+    variantId: selected?.id ?? null,
+    title: product.title || product.name || `Product ${product.id}`,
+    price: selected?.price ?? product.price ?? 0,
+    qty,
+    image: mainImage,
   };
 
-  return (
-    <div className="product-details">
-      <div className="product-images">
-        <img src={mainImage} alt={product.title || product.name} className="main-image" />
-        <div className="thumbnail-images">
-          {product.images?.map((img, index) => (
-            <img
-              key={index}
-              src={`https://evaluate.ecommexserver.site${img}`}
-              alt={product.title || product.name}
-              className="thumbnail"
-              onClick={() => setMainImage(`https://evaluate.ecommexserver.site${img}`)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="product-info">
-        <h1>{product.title || product.name}</h1>
-        <p>{product.description}</p>
-
-        <div className="variants">
-          {product.variants?.map((v) => (
-            <button
-              key={v.id}
-              onClick={() => setSelectedVariant(v)}
-              className={v.id === selectedVariant?.id ? "active" : ""}
-            >
-              {v.name} - Rs. {v.price}
-            </button>
-          ))}
-        </div>
-
-        <div className="quantity">
-          <label>Quantity:</label>
-          <input
-            type="number"
-            min={1}
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-          />
-        </div>
-
-        <button className="add-to-cart" onClick={handleAddToCart}>
-          Add to Cart
-        </button>
-      </div>
-    </div>
-  );
+  // Get existing cart from localStorage
+  const existing = JSON.parse(localStorage.getItem("cart") || "[]");
+  // Check if item already exists
+  const idx = existing.findIndex((item: any) => item.uid === uid);
+  if (idx > -1) {
+    existing[idx].qty += qty; // increase quantity
+  } else {
+    existing.push(cartItem);
+  }
+  localStorage.setItem("cart", JSON.stringify(existing));
+  nav("/cart");
 };
 
-export default Details;
+  return (
+    <main className="container">
+      <h1>{product.title || product.name || `Product ${product.id}`}</h1>
+      <div className="details-grid">
+        <div className="gallery">
+          <img src={mainImage} alt={product.title || product.name} loading="lazy" />
+          <div className="thumb-row">
+            {product.images?.map((img, i) => {
+              const src = typeof img === "string" ? img : "url" in img && img.url ? `${API_BASE}${img.url}` : "";
+              return src ? <img key={i} src={src} alt={`thumb-${i}`} className="thumb" /> : null;
+            })}
+          </div>
+        </div>
+
+        <div>
+          <p>{product.description}</p>
+
+          {product.variants && product.variants.length > 0 && (
+            <>
+              <h2>Variants</h2>
+              {(product.variants || []).map((v) => (
+                <div
+                  key={v.id}
+                  className={`variant ${selected?.id === v.id ? "selected" : ""}`}
+                  onClick={() => setSelected(v)}
+                >
+                  {v.name || `Variant ${v.id}`} - Rs. {v.price ?? product.price ?? 0}
+                </div>
+              ))}
+            </>
+          )}
+
+          <div style={{ marginTop: "12px" }}>
+            <label>
+              Quantity:{" "}
+              <input
+                type="number"
+                min={1}
+                value={qty}
+                onChange={(e) => setQty(Number(e.target.value))}
+              />
+            </label>
+          </div>
+
+          <button className="btn-primary" style={{ marginTop: "12px" }} onClick={handleAdd}>
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}

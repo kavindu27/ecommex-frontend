@@ -5,14 +5,17 @@ export type Variant = {
   [key: string]: any;
 };
 
-export type Product = {
+// Images can be a string URL or an object with url
+export type ProductsImage = string | { url: string };
+
+export type Products = {
   id: number;
   product_id?: number;
   name?: string;
   title?: string;
   description?: string;
-  image?: string;       // main image (string URL)
-  images?: string[];    // array of string URLs
+  images?: ProductsImage[];
+  image?: string;
   variants?: Variant[];
   price?: number;
   [key: string]: any;

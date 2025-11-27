@@ -1,19 +1,21 @@
-// src/App.tsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Details from "./pages/Details";
-import CartPage from "./pages/Cart";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Home from "./pages/Home"; // use your actual page component name
+import Cart from "./pages/Cart";
+import Details from "./pages/Details";
 
-export default function App() {
+function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/product/:id" element={<Details />} />
-        <Route path="/cart" element={<CartPage />} />
+        <Route path="/products" element={<Home />} />
+        <Route path="/products/:id" element={<Details />} />
+        <Route path="/cart" element={<Cart />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
+
+export default App;
