@@ -1,26 +1,38 @@
-// src/components/ProductCard.tsx
 import { Link } from "react-router-dom";
 import type { Products } from "../types";
 
-type Props = { products: Products };
+const API_BASE = import.meta.env.VITE_API_BASE?.replace(/\/$/, '') || "https://evaluate.ecommexserver.site";
 
-const ProductCard = ({ products }: Props) => {
-  // Determine main image
-  const image =
-    typeof products.cover_image === "string"
-      ? products.cover_image
-      : products.cover_image?.url
-      ? `https://evaluate.ecommexserver.site${products.cover_image.url}`
-      : products.additional_images
-      ? `https://evaluate.ecommexserver.site/${products.additional_images.split(",")[0]}`
-      : "/placeholder.png";
+type Props = { product: Products };
 
-  const title = products.title || products.name || `Product ${products.id}`;
-  const price = products.price ?? products.variants?.[0]?.price ?? 0;
+const ProductCard = ({ product }: Props) => {
+  const getImage = (): string => {
+    // Cover image
+    if (product.cover_image) {
+      return product.cover_image.startsWith("http")
+        ? product.cover_image
+        : `${API_BASE}/${product.cover_image.replace(/^\/+/, '')}`;
+    }
+
+    // Additional images
+    if (product.additional_images) {
+      const first = product.additional_images.split(",")[0];
+      return first.startsWith("http")
+        ? first
+        : `${API_BASE}/${first.replace(/^\/+/, '')}`;
+    }
+
+    // Placeholder
+    return "/placeholder.png";
+  };
+
+  const image = getImage();
+  const title = product.title || product.name || `Product ${product.id}`;
+  const price = product.price ?? product.variants?.[0]?.price ?? 0;
 
   return (
     <article className="card">
-      <Link to={`/products/${products.id || products.product_id}`}>
+      <Link to={`/products/${product.id || product.product_id}`}>
         <div className="card-media">
           <img src={image} alt={title} loading="lazy" />
         </div>
@@ -30,7 +42,7 @@ const ProductCard = ({ products }: Props) => {
           <div className="card-price">Rs. {price}</div>
 
           <div className="variant-chips">
-            {(products.variants || []).slice(0, 3).map((v) => (
+            {(product.variants || []).slice(0, 3).map((v) => (
               <span key={v.id} className="chip">
                 {v.name || `v${v.id}`}
               </span>

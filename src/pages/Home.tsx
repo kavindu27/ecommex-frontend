@@ -53,7 +53,7 @@ export default function Home() {
     <main className="container">
       <h1 className="page-title">Products</h1>
       <section className="grid">
-        {products.map((p) => <ProductCard key={p.id || p.product_id} products={p} />)}
+        {products.map((p) => <ProductCard key={p.id || p.product_id} product={p} />)}
       </section>
     </main>
   );

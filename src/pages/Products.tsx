@@ -41,7 +41,7 @@ const Products: React.FC = () => {
         <>
           <div className="grid">
             {paginatedProducts.map((product) => (
-              <ProductCard key={product.id} products={product} />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
 
